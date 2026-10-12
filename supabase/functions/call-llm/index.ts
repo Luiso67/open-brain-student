@@ -39,7 +39,7 @@ type Answer = { text: string; inputTokens: number; outputTokens: number }
 // One adapter per provider. Adding a provider means adding one function here.
 const providers: Record<string, (a: Ask) => Promise<Answer>> = {
   anthropic: async ({ prompt, systemPrompt, model, maxTokens }) => {
-    const client = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') })
+    const client = new Anthropic({ apiKey: (Deno.env.get('ANTHROPIC_API_KEY') ?? '').trim() })
     const res = await client.messages.create({
       model,
       max_tokens: maxTokens,
