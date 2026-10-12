@@ -12,6 +12,7 @@ PROJECT_REF="vmdrvujkzlvpuzzttfxg"
 URL="https://${PROJECT_REF}.supabase.co/functions/v1/open-brain-mcp"
 CONFIG="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
 
+read -rp "Press Enter to create your Open Brain access key and connect Claude: " _
 KEY=$(openssl rand -hex 32)
 
 mkdir -p "$(dirname "$CONFIG")"
