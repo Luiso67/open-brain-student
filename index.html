@@ -2,204 +2,588 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>My Open Brain</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <meta name="theme-color" content="#6366f1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Open Brain">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="config.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0f0f0f;
-      color: #e5e5e5;
-      min-height: 100vh;
-      padding: 32px 16px;
+      background: #0f0f0f; color: #e5e5e5; min-height: 100vh;
+      padding: max(24px, env(safe-area-inset-top)) 16px 48px;
     }
     .container { max-width: 680px; margin: 0 auto; }
+    .hidden { display: none !important; }
 
-    header { margin-bottom: 32px; }
-    h1 { font-size: 1.5rem; font-weight: 600; color: #fff; }
-    .status {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 0.8rem; color: #555; margin-top: 6px;
-    }
-    .dot {
-      width: 7px; height: 7px; border-radius: 50%; background: #333;
-      flex-shrink: 0; transition: background 0.3s;
-    }
+    header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+    h1 { font-size: 1.4rem; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .status { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: #555; margin-top: 6px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #333; flex-shrink: 0; transition: background 0.3s; }
     .dot.connected { background: #22c55e; }
     .dot.error { background: #ef4444; }
+    .who { font-size: 0.75rem; color: #555; text-align: right; }
+    .linkbtn { background: none; border: none; color: #818cf8; font-size: 0.8rem; cursor: pointer; padding: 4px 0; }
+    .linkbtn:hover { color: #a5b4fc; }
 
     .banner {
-      background: #1a0a0a; border: 1px solid #3a1515; border-radius: 10px;
-      padding: 16px 18px; margin-bottom: 24px; font-size: 0.875rem;
-      color: #f87171; line-height: 1.6; display: none;
+      background: #1a0a0a; border: 1px solid #3a1515; border-radius: 10px; padding: 14px 16px;
+      margin-bottom: 20px; font-size: 0.875rem; color: #f87171; line-height: 1.6;
     }
-    .banner code {
-      background: #2a1010; padding: 1px 6px; border-radius: 4px;
-      font-size: 0.8rem; font-family: monospace;
-    }
+    .banner code { background: #2a1010; padding: 1px 6px; border-radius: 4px; font-size: 0.8rem; font-family: monospace; }
 
-    .capture {
-      background: #161616; border: 1px solid #222; border-radius: 12px;
-      padding: 20px; margin-bottom: 28px;
+    .card { background: #161616; border: 1px solid #222; border-radius: 12px; padding: 18px; margin-bottom: 20px; }
+    .card h2 { font-size: 1rem; font-weight: 600; color: #fff; margin-bottom: 4px; }
+    .help { font-size: 0.8rem; color: #666; line-height: 1.55; margin-bottom: 14px; }
+    .help a { color: #818cf8; }
+    label { display: block; font-size: 0.75rem; color: #777; margin: 12px 0 6px; }
+
+    input[type=text], input[type=email], input[type=password], input[type=url], input[type=search], textarea {
+      width: 100%; background: #0f0f0f; border: 1px solid #252525; border-radius: 8px; color: #e5e5e5;
+      font-size: 16px; padding: 11px 13px; font-family: inherit; outline: none; transition: border-color 0.2s; line-height: 1.5;
     }
-    textarea {
-      width: 100%; background: #0f0f0f; border: 1px solid #252525;
-      border-radius: 8px; color: #e5e5e5; font-size: 0.95rem;
-      padding: 12px 14px; resize: vertical; min-height: 96px;
-      font-family: inherit; outline: none; transition: border-color 0.2s;
-      line-height: 1.5;
-    }
-    textarea:focus { border-color: #6366f1; }
-    textarea::placeholder { color: #383838; }
-    .row {
-      display: flex; align-items: center; gap: 12px; margin-top: 12px;
-    }
-    button {
-      background: #6366f1; color: #fff; border: none; border-radius: 8px;
-      padding: 9px 22px; font-size: 0.875rem; font-weight: 500;
+    textarea { resize: vertical; min-height: 110px; }
+    textarea.tall { min-height: 200px; }
+    input:focus, textarea:focus { border-color: #6366f1; }
+    ::placeholder { color: #3a3a3a; }
+
+    .row { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+    button.primary, button.secondary {
+      border: none; border-radius: 8px; padding: 10px 20px; font-size: 0.875rem; font-weight: 500;
       cursor: pointer; transition: background 0.15s; white-space: nowrap;
     }
-    button:hover:not(:disabled) { background: #5254cc; }
-    button:disabled { background: #1e1e1e; color: #444; cursor: not-allowed; }
-    .hint { font-size: 0.75rem; color: #444; }
-    .save-msg { font-size: 0.8rem; min-height: 16px; }
-    .save-msg.ok { color: #22c55e; }
-    .save-msg.err { color: #ef4444; }
+    button.primary { background: #6366f1; color: #fff; }
+    button.primary:hover:not(:disabled) { background: #5254cc; }
+    button.secondary { background: #222; color: #ccc; }
+    button.secondary:hover:not(:disabled) { background: #2c2c2c; }
+    button:disabled { background: #1e1e1e !important; color: #444 !important; cursor: not-allowed; }
+    .msg { font-size: 0.8rem; min-height: 16px; }
+    .msg.ok { color: #22c55e; }
+    .msg.err { color: #ef4444; }
 
-    .section-label {
-      font-size: 0.7rem; font-weight: 600; color: #444;
-      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;
+    nav.tabs {
+      display: flex; gap: 4px; overflow-x: auto; margin-bottom: 18px; padding-bottom: 2px;
+      scrollbar-width: none; -webkit-overflow-scrolling: touch;
     }
-    .thought {
-      background: #161616; border: 1px solid #1e1e1e; border-radius: 10px;
-      padding: 16px 18px; margin-bottom: 8px;
+    nav.tabs::-webkit-scrollbar { display: none; }
+    nav.tabs button {
+      display: flex; align-items: center; gap: 6px; background: #161616; border: 1px solid #222; color: #888;
+      border-radius: 999px; padding: 8px 14px; font-size: 0.82rem; cursor: pointer; white-space: nowrap; flex-shrink: 0;
     }
-    .thought-text { font-size: 0.9rem; color: #ccc; line-height: 1.55; white-space: pre-wrap; }
-    .thought-time { font-size: 0.72rem; color: #444; margin-top: 8px; }
-    .empty { color: #333; font-size: 0.875rem; text-align: center; padding: 48px 0; }
+    nav.tabs button.active { background: #6366f1; border-color: #6366f1; color: #fff; }
+    nav.tabs svg { width: 15px; height: 15px; }
+
+    .mic {
+      width: 96px; height: 96px; border-radius: 50%; border: none; background: #6366f1; color: #fff;
+      display: flex; align-items: center; justify-content: center; margin: 8px auto 16px; cursor: pointer;
+    }
+    .mic svg { width: 38px; height: 38px; }
+    .mic.listening { background: #ef4444; animation: pulse 1.4s ease-out infinite; }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
+      100% { box-shadow: 0 0 0 26px rgba(239, 68, 68, 0); }
+    }
+    .center { text-align: center; font-size: 0.8rem; color: #666; margin-bottom: 12px; }
+
+    .yt-preview { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
+    .yt-preview img { width: 120px; border-radius: 6px; flex-shrink: 0; }
+    .yt-preview .title { font-size: 0.9rem; color: #ddd; line-height: 1.4; }
+
+    .drop {
+      border: 2px dashed #2a2a2a; border-radius: 10px; padding: 32px 16px; text-align: center;
+      color: #666; font-size: 0.875rem; cursor: pointer; transition: border-color 0.2s, background 0.2s;
+    }
+    .drop.over { border-color: #6366f1; background: #14142a; }
+    .drop svg { width: 30px; height: 30px; margin-bottom: 8px; color: #555; }
+    .progress { height: 4px; background: #222; border-radius: 2px; overflow: hidden; margin-top: 12px; }
+    .progress div { height: 100%; width: 0; background: #6366f1; transition: width 0.2s; }
+
+    .section-label { font-size: 0.7rem; font-weight: 600; color: #444; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .thought { background: #161616; border: 1px solid #1e1e1e; border-radius: 10px; padding: 14px 16px; margin-bottom: 8px; }
+    .thought-text { font-size: 0.9rem; color: #ccc; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+    .thought-text.clamped { display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
+    .thought-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 0.72rem; color: #444; margin-top: 8px; }
+    .thought-meta a { color: #6366f1; }
+    .empty { color: #3a3a3a; font-size: 0.875rem; text-align: center; padding: 40px 0; }
+    mark { background: #3730a3; color: #fff; border-radius: 2px; padding: 0 1px; }
+
+    .auth-card { max-width: 400px; margin: 40px auto 0; }
+    .auth-switch { font-size: 0.8rem; color: #666; margin-top: 16px; text-align: center; }
   </style>
 </head>
 <body>
 <div class="container">
 
   <header>
-    <h1><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:6px" aria-hidden="true"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M12 18V5"/></svg>My Open Brain</h1>
-    <div class="status">
-      <div class="dot" id="dot"></div>
-      <span id="statusText">Connecting...</span>
+    <div>
+      <h1>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M12 18V5"/></svg>
+        My Open Brain
+      </h1>
+      <div class="status"><div class="dot" id="dot"></div><span id="statusText">Connecting...</span></div>
+    </div>
+    <div class="who hidden" id="who">
+      <div id="whoEmail"></div>
+      <button class="linkbtn" id="signOutBtn">Sign out</button>
     </div>
   </header>
 
-  <div class="banner" id="banner"></div>
+  <div class="banner hidden" id="banner"></div>
 
-  <div class="capture">
-    <textarea id="input" placeholder="Capture anything: ideas, notes, things you learned, questions, plans..." rows="4"></textarea>
-    <div class="row">
-      <button id="saveBtn" onclick="save()" disabled>Save to Brain</button>
-      <span class="hint">or Ctrl+Enter</span>
-      <span class="save-msg" id="saveMsg"></span>
+  <!-- ============ LOGIN ============ -->
+  <section id="authView" class="hidden">
+    <div class="card auth-card">
+      <h2 id="authTitle">Sign in</h2>
+      <p class="help">Your brain is private. Only you can see what is in it.</p>
+      <form id="authForm">
+        <label for="authEmail">Email</label>
+        <input type="email" id="authEmail" autocomplete="email" required>
+        <label for="authPassword">Password</label>
+        <input type="password" id="authPassword" autocomplete="current-password" minlength="6" required>
+        <div class="row">
+          <button class="primary" type="submit" id="authSubmit">Sign in</button>
+          <span class="msg" id="authMsg"></span>
+        </div>
+      </form>
+      <div class="auth-switch">
+        <span id="authSwitchText">No account yet?</span>
+        <button class="linkbtn" id="authSwitch" type="button">Create account</button>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <div class="section-label">Recent Thoughts</div>
-  <div id="list"><div class="empty">Loading...</div></div>
+  <!-- ============ APP ============ -->
+  <section id="appView" class="hidden">
+    <nav class="tabs" id="tabs">
+      <button data-tab="text" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></svg>Write</button>
+      <button data-tab="voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>Voice</button>
+      <button data-tab="youtube"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"/><path d="m10 15 5-3-5-3z"/></svg>YouTube</button>
+      <button data-tab="pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>PDF</button>
+      <button data-tab="url"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>Web page</button>
+      <button data-tab="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Search</button>
+      <button data-tab="recent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Recent</button>
+    </nav>
 
+    <!-- Write -->
+    <div class="panel" data-panel="text">
+      <div class="card">
+        <textarea id="textInput" placeholder="Capture anything: ideas, notes, things you learned, questions, plans..."></textarea>
+        <div class="row">
+          <button class="primary" id="textSave">Save to Brain</button>
+          <span class="help" style="margin:0">or Cmd+Enter</span>
+          <span class="msg" id="textMsg"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Voice -->
+    <div class="panel hidden" data-panel="voice">
+      <div class="card">
+        <h2>Voice</h2>
+        <p class="help" id="voiceHelp">Tap the microphone and talk. Tap again to stop. Check the text before you save.</p>
+        <button class="mic" id="micBtn" aria-label="Start or stop listening"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></button>
+        <div class="center" id="voiceState">Not listening</div>
+        <textarea id="voiceText" placeholder="Your words will appear here."></textarea>
+        <div class="row">
+          <button class="primary" id="voiceSave">Save to Brain</button>
+          <button class="secondary" id="voiceClear">Clear</button>
+          <span class="msg" id="voiceMsg"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- YouTube -->
+    <div class="panel hidden" data-panel="youtube">
+      <div class="card">
+        <h2>YouTube</h2>
+        <p class="help">Paste a video link. Then open the video, click <b>...more</b> under it, click <b>Show transcript</b>, select all the transcript text, copy it, and paste it below. Level 3 makes this automatic.</p>
+        <label for="ytUrl">Video link</label>
+        <input type="url" id="ytUrl" placeholder="https://www.youtube.com/watch?v=...">
+        <div class="yt-preview hidden" id="ytPreview">
+          <img id="ytThumb" alt="">
+          <div>
+            <div class="title" id="ytTitle"></div>
+            <div class="row" style="margin-top:8px"><a class="primary" id="ytOpen" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block;background:#222;color:#ccc;border-radius:8px;padding:8px 14px;font-size:0.8rem">Get Transcript</a></div>
+          </div>
+        </div>
+        <label for="ytTranscript">Transcript</label>
+        <textarea id="ytTranscript" class="tall" placeholder="Paste the transcript here."></textarea>
+        <div class="row">
+          <button class="primary" id="ytSave">Save to Brain</button>
+          <span class="msg" id="ytMsg"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PDF -->
+    <div class="panel hidden" data-panel="pdf">
+      <div class="card">
+        <h2>PDF</h2>
+        <p class="help">Drop a PDF here or tap to pick one. The text is pulled out right here on your device. Nothing is uploaded until you press save.</p>
+        <div class="drop" id="drop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+          <div id="dropText">Drop a PDF or tap to choose</div>
+        </div>
+        <input type="file" id="pdfFile" accept="application/pdf" class="hidden">
+        <div class="progress hidden" id="pdfProgress"><div id="pdfBar"></div></div>
+        <label for="pdfText">Extracted text</label>
+        <textarea id="pdfText" class="tall" placeholder="The PDF text will appear here for you to check."></textarea>
+        <div class="row">
+          <button class="primary" id="pdfSave">Save to Brain</button>
+          <span class="msg" id="pdfMsg"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- URL -->
+    <div class="panel hidden" data-panel="url">
+      <div class="card">
+        <h2>Web page</h2>
+        <p class="help">Browsers do not let one website read another, so for now open the page, select the article text, copy it and paste it below. Level 3 makes this automatic.</p>
+        <label for="urlInput">Page link</label>
+        <input type="url" id="urlInput" placeholder="https://...">
+        <label for="urlText">Article text</label>
+        <textarea id="urlText" class="tall" placeholder="Paste the article text here."></textarea>
+        <div class="row">
+          <button class="primary" id="urlSave">Save to Brain</button>
+          <span class="msg" id="urlMsg"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="panel hidden" data-panel="search">
+      <div class="card">
+        <form id="searchForm" class="row" style="margin-top:0">
+          <input type="search" id="searchInput" placeholder="Search everything you have saved" style="flex:1;min-width:0">
+          <button class="primary" type="submit">Search</button>
+          <button class="secondary" type="button" id="searchClear">Clear</button>
+        </form>
+      </div>
+      <div id="searchResults"></div>
+    </div>
+
+    <!-- Recent -->
+    <div class="panel hidden" data-panel="recent">
+      <div class="section-label">Recent thoughts</div>
+      <div id="recentList"><div class="empty">Loading...</div></div>
+    </div>
+  </section>
 </div>
+
 <script>
   let db = null
+  let user = null
+  let signUpMode = false
+  const $ = id => document.getElementById(id)
 
+  // ---------- helpers ----------
+  const ENTITIES = {
+    '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&apos;': "'", '&nbsp;': ' ',
+    '&rsquo;': '’', '&lsquo;': '‘', '&rdquo;': '”', '&ldquo;': '“',
+    '&mdash;': '—', '&ndash;': '–', '&hellip;': '…',
+    '&aacute;': 'á', '&eacute;': 'é', '&iacute;': 'í', '&oacute;': 'ó', '&uacute;': 'ú', '&ntilde;': 'ñ', '&uuml;': 'ü',
+    '&Aacute;': 'Á', '&Eacute;': 'É', '&Iacute;': 'Í', '&Oacute;': 'Ó', '&Uacute;': 'Ú', '&Ntilde;': 'Ñ', '&Uuml;': 'Ü',
+    '&iexcl;': '¡', '&iquest;': '¿'
+  }
+  // Decode HTML entities left behind by PDFs and pasted web text. &amp; goes last
+  // so a double-escaped "&amp;lt;" becomes the text "&lt;", never a real "<".
+  function decodeEntities(text) {
+    if (!text) return ''
+    let out = text.replace(/&[a-zA-Z]+;|&#39;/g, m => ENTITIES[m] ?? m)
+    out = out.replace(/&#(\d+);/g, (m, n) => (n === '38' ? m : String.fromCodePoint(+n)))
+    out = out.replace(/&#x([0-9a-f]+);/gi, (m, h) => (h.toLowerCase() === '26' ? m : String.fromCodePoint(parseInt(h, 16))))
+    return out.replace(/&amp;/g, '&').replace(/&#38;|&#x26;/gi, '&')
+  }
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  }
+  function fmt(iso) {
+    return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+  function setMsg(id, text, ok) {
+    const el = $(id); el.textContent = text; el.className = 'msg ' + (ok ? 'ok' : 'err')
+    if (ok) setTimeout(() => { if (el.textContent === text) el.textContent = '' }, 3000)
+  }
   function showBanner(html) {
-    const b = document.getElementById('banner')
-    b.innerHTML = html
-    b.style.display = 'block'
-    document.getElementById('dot').className = 'dot error'
-    document.getElementById('statusText').textContent = 'Not connected'
+    $('banner').innerHTML = html; $('banner').classList.remove('hidden')
+    $('dot').className = 'dot error'; $('statusText').textContent = 'Not connected'
   }
 
+  // Save one thought, plus its full source text when there is one. The source
+  // insert is allowed to fail: the thought is already saved either way.
+  async function saveThought({ content, metadata = {}, source = null }) {
+    const { data, error } = await db.from('thoughts')
+      .insert({ content, metadata, user_id: user.id })
+      .select('id').single()
+    if (error) throw error
+    if (source) {
+      try {
+        const { error: sErr } = await db.from('thought_sources').insert({
+          thought_id: data.id, user_id: user.id, source_text: source.text,
+          source_kind: source.kind, char_count: source.text.length, truncated: false
+        })
+        if (sErr) throw sErr
+      } catch (e) { console.warn('Source text not saved:', e.message) }
+    }
+    return data.id
+  }
+
+  async function withButton(btnId, msgId, fn) {
+    const btn = $(btnId); const label = btn.textContent
+    btn.disabled = true; btn.textContent = 'Saving...'
+    try { await fn(); setMsg(msgId, 'Saved', true); loadRecent() }
+    catch (e) { setMsg(msgId, e.message, false) }
+    finally { btn.disabled = false; btn.textContent = label }
+  }
+
+  function renderThoughts(el, rows, query) {
+    if (!rows || rows.length === 0) {
+      el.innerHTML = '<div class="empty">' + (query ? 'Nothing matches that.' : 'No thoughts yet. Capture something.') + '</div>'
+      return
+    }
+    el.innerHTML = rows.map(t => {
+      let text = esc(t.content)
+      if (query) {
+        const re = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+        text = text.replace(re, m => '<mark>' + m + '</mark>')
+      }
+      const link = t.metadata && t.metadata.url ? '<a href="' + esc(t.metadata.url) + '" target="_blank" rel="noopener">source</a>'
+        : t.metadata && t.metadata.video_id ? '<a href="https://www.youtube.com/watch?v=' + esc(t.metadata.video_id) + '" target="_blank" rel="noopener">video</a>' : ''
+      return '<div class="thought"><div class="thought-text clamped">' + text + '</div>' +
+        '<div class="thought-meta"><span>' + fmt(t.created_at) + '</span>' + link + '</div></div>'
+    }).join('')
+    el.querySelectorAll('.thought-text').forEach(n => n.addEventListener('click', () => n.classList.toggle('clamped')))
+  }
+
+  // ---------- auth ----------
+  function setAuthMode(up) {
+    signUpMode = up
+    $('authTitle').textContent = up ? 'Create account' : 'Sign in'
+    $('authSubmit').textContent = up ? 'Create account' : 'Sign in'
+    $('authSwitchText').textContent = up ? 'Already have an account?' : 'No account yet?'
+    $('authSwitch').textContent = up ? 'Sign in' : 'Create account'
+    $('authPassword').autocomplete = up ? 'new-password' : 'current-password'
+    $('authMsg').textContent = ''
+  }
+  $('authSwitch').onclick = () => setAuthMode(!signUpMode)
+  $('authForm').onsubmit = async e => {
+    e.preventDefault()
+    const email = $('authEmail').value.trim(), password = $('authPassword').value
+    $('authSubmit').disabled = true
+    try {
+      const { error } = signUpMode
+        ? await db.auth.signUp({ email, password })
+        : await db.auth.signInWithPassword({ email, password })
+      if (error) throw error
+    } catch (err) { setMsg('authMsg', err.message, false) }
+    finally { $('authSubmit').disabled = false }
+  }
+  $('signOutBtn').onclick = () => db.auth.signOut()
+
+  function applySession(session) {
+    user = session ? session.user : null
+    $('authView').classList.toggle('hidden', !!user)
+    $('appView').classList.toggle('hidden', !user)
+    $('who').classList.toggle('hidden', !user)
+    if (user) {
+      $('whoEmail').textContent = user.email
+      $('statusText').textContent = 'Connected to your database'
+      loadRecent()
+    } else {
+      $('statusText').textContent = 'Connected. Sign in to open your brain.'
+      setAuthMode(false)
+    }
+  }
+
+  // ---------- tabs ----------
+  $('tabs').addEventListener('click', e => {
+    const b = e.target.closest('button[data-tab]'); if (!b) return
+    document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('active', x === b))
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('hidden', p.dataset.panel !== b.dataset.tab))
+    if (b.dataset.tab === 'recent') loadRecent()
+    if (b.dataset.tab === 'search') $('searchInput').focus()
+  })
+
+  // ---------- write ----------
+  $('textSave').onclick = () => {
+    const text = $('textInput').value.trim(); if (!text) return
+    withButton('textSave', 'textMsg', async () => { await saveThought({ content: text }); $('textInput').value = '' })
+  }
+  $('textInput').addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') $('textSave').click() })
+
+  // ---------- voice ----------
+  const Speech = window.SpeechRecognition || window.webkitSpeechRecognition
+  let rec = null, listening = false, baseText = ''
+  if (!Speech) {
+    $('voiceHelp').textContent = 'This browser does not support voice typing. Chrome and Edge do; on iPhone, tap the text box and use the microphone key on the keyboard instead.'
+    $('micBtn').disabled = true
+  } else {
+    rec = new Speech(); rec.continuous = true; rec.interimResults = true; rec.lang = navigator.language || 'en-US'
+    rec.onresult = e => {
+      let finalText = '', interim = ''
+      for (let i = 0; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finalText += e.results[i][0].transcript
+        else interim += e.results[i][0].transcript
+      }
+      $('voiceText').value = (baseText + ' ' + finalText + interim).trim()
+    }
+    rec.onerror = e => { setMsg('voiceMsg', 'Microphone error: ' + e.error, false); stopListening() }
+    rec.onend = () => { if (listening) stopListening() }
+  }
+  function stopListening() { listening = false; $('micBtn').classList.remove('listening'); $('voiceState').textContent = 'Not listening'; try { rec.stop() } catch (e) {} }
+  $('micBtn').onclick = () => {
+    if (!rec) return
+    if (listening) return stopListening()
+    baseText = $('voiceText').value.trim(); listening = true
+    $('micBtn').classList.add('listening'); $('voiceState').textContent = 'Listening...'
+    try { rec.start() } catch (e) { stopListening() }
+  }
+  $('voiceClear').onclick = () => { $('voiceText').value = ''; baseText = '' }
+  $('voiceSave').onclick = () => {
+    const text = $('voiceText').value.trim(); if (!text) return
+    if (listening) stopListening()
+    withButton('voiceSave', 'voiceMsg', async () => {
+      await saveThought({ content: 'Voice note:\n' + text, metadata: { source: 'voice' } })
+      $('voiceText').value = ''; baseText = ''
+    })
+  }
+
+  // ---------- youtube ----------
+  let yt = { id: null, title: '' }
+  function videoId(url) {
+    const m = String(url).match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/)
+    return m ? m[1] : null
+  }
+  $('ytUrl').addEventListener('input', async () => {
+    const id = videoId($('ytUrl').value)
+    if (!id) { $('ytPreview').classList.add('hidden'); yt = { id: null, title: '' }; return }
+    if (id === yt.id) return
+    yt = { id, title: '' }
+    $('ytThumb').src = 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg'
+    $('ytOpen').href = 'https://www.youtube.com/watch?v=' + id
+    $('ytTitle').textContent = 'Video ' + id
+    $('ytPreview').classList.remove('hidden')
+    try {
+      const r = await fetch('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent('https://www.youtube.com/watch?v=' + id))
+      if (r.ok) { const j = await r.json(); if (yt.id === id) { yt.title = decodeEntities(j.title || ''); $('ytTitle').textContent = yt.title } }
+    } catch (e) { /* title is optional */ }
+  })
+  $('ytSave').onclick = () => {
+    const transcript = decodeEntities($('ytTranscript').value.trim())
+    if (!yt.id) return setMsg('ytMsg', 'Paste a YouTube link first', false)
+    if (!transcript) return setMsg('ytMsg', 'Paste the transcript first', false)
+    const title = yt.title || ('Video ' + yt.id)
+    withButton('ytSave', 'ytMsg', async () => {
+      await saveThought({
+        content: 'YouTube: ' + title + '\n\n' + transcript,
+        metadata: { source: 'youtube', video_id: yt.id, title },
+        source: { text: transcript, kind: 'youtube_transcript' }
+      })
+      $('ytTranscript').value = ''; $('ytUrl').value = ''; $('ytPreview').classList.add('hidden'); yt = { id: null, title: '' }
+    })
+  }
+
+  // ---------- pdf ----------
+  let pdfName = ''
+  if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+  $('drop').onclick = () => $('pdfFile').click()
+  $('drop').addEventListener('dragover', e => { e.preventDefault(); $('drop').classList.add('over') })
+  $('drop').addEventListener('dragleave', () => $('drop').classList.remove('over'))
+  $('drop').addEventListener('drop', e => { e.preventDefault(); $('drop').classList.remove('over'); if (e.dataTransfer.files[0]) readPdf(e.dataTransfer.files[0]) })
+  $('pdfFile').onchange = () => { if ($('pdfFile').files[0]) readPdf($('pdfFile').files[0]) }
+  async function readPdf(file) {
+    if (!window.pdfjsLib) return setMsg('pdfMsg', 'PDF reader did not load. Check your connection and reload.', false)
+    if (file.type && file.type !== 'application/pdf') return setMsg('pdfMsg', 'That is not a PDF', false)
+    pdfName = file.name; $('dropText').textContent = file.name
+    $('pdfProgress').classList.remove('hidden'); $('pdfBar').style.width = '0'
+    try {
+      const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise
+      const pages = []
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i)
+        const tc = await page.getTextContent()
+        let line = '', out = ''
+        for (const item of tc.items) { line += item.str; if (item.hasEOL) { out += line + '\n'; line = '' } else line += '' }
+        pages.push((out + line).replace(/[ \t]+\n/g, '\n').trim())
+        $('pdfBar').style.width = Math.round(i / pdf.numPages * 100) + '%'
+      }
+      const text = decodeEntities(pages.filter(Boolean).join('\n\n'))
+      $('pdfText').value = text
+      setMsg('pdfMsg', text ? pdf.numPages + ' pages read. Check the text, then save.' : 'No text found. This PDF may be a scanned image.', !!text)
+    } catch (e) { setMsg('pdfMsg', 'Could not read that PDF: ' + e.message, false) }
+  }
+  $('pdfSave').onclick = () => {
+    const text = $('pdfText').value.trim(); if (!text) return
+    const name = pdfName || 'document.pdf'
+    withButton('pdfSave', 'pdfMsg', async () => {
+      await saveThought({ content: 'PDF: ' + name + '\n\n' + text, metadata: { source: 'pdf', filename: name }, source: { text, kind: 'pdf' } })
+      $('pdfText').value = ''; pdfName = ''; $('dropText').textContent = 'Drop a PDF or tap to choose'; $('pdfProgress').classList.add('hidden')
+    })
+  }
+
+  // ---------- url ----------
+  $('urlSave').onclick = () => {
+    const url = $('urlInput').value.trim(), text = decodeEntities($('urlText').value.trim())
+    if (!/^https?:\/\//i.test(url)) return setMsg('urlMsg', 'Paste the page link first', false)
+    if (!text) return setMsg('urlMsg', 'Paste the article text first', false)
+    withButton('urlSave', 'urlMsg', async () => {
+      await saveThought({ content: 'Web: ' + url + '\n\n' + text, metadata: { source: 'web', url }, source: { text, kind: 'web' } })
+      $('urlInput').value = ''; $('urlText').value = ''
+    })
+  }
+
+  // ---------- search ----------
+  $('searchForm').onsubmit = async e => {
+    e.preventDefault()
+    const q = $('searchInput').value.trim(); if (!q) return
+    $('searchResults').innerHTML = '<div class="empty">Searching...</div>'
+    const pattern = '%' + q.replace(/[\\%_]/g, m => '\\' + m) + '%'
+    const { data, error } = await db.from('thoughts').select('*').ilike('content', pattern)
+      .order('created_at', { ascending: false }).limit(50)
+    if (error) { $('searchResults').innerHTML = '<div class="empty" style="color:#ef4444">' + esc(error.message) + '</div>'; return }
+    renderThoughts($('searchResults'), data, q)
+  }
+  $('searchClear').onclick = () => { $('searchInput').value = ''; $('searchResults').innerHTML = '' }
+
+  // ---------- recent ----------
+  async function loadRecent() {
+    if (!user) return
+    const { data, error } = await db.from('thoughts').select('*').order('created_at', { ascending: false }).limit(20)
+    if (error) { $('recentList').innerHTML = '<div class="empty" style="color:#ef4444">Could not load: ' + esc(error.message) + '</div>'; return }
+    renderThoughts($('recentList'), data)
+  }
+
+  // ---------- start ----------
   async function init() {
     if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('PASTE_YOUR')) {
-      showBanner('Setup not complete. Open <code>config.js</code> and replace the two placeholder values with your Supabase URL and anon key.')
-      document.getElementById('list').innerHTML = ''
-      return
+      return showBanner('Setup not complete. Open <code>config.js</code> and add your Supabase URL and anon key.')
     }
     try {
       db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
       const { error } = await db.from('thoughts').select('id').limit(1)
       if (error) throw error
-      document.getElementById('dot').className = 'dot connected'
-      document.getElementById('statusText').textContent = 'Connected to your database'
-      document.getElementById('saveBtn').disabled = false
-      await load()
+      $('dot').className = 'dot connected'
+      const { data: { session } } = await db.auth.getSession()
+      applySession(session)
+      db.auth.onAuthStateChange((_event, s) => applySession(s))
     } catch (e) {
-      showBanner('Could not connect to your database.<br><br>Error: <code>' + e.message + '</code><br><br>Check that your URL and anon key in <code>config.js</code> are correct and that you ran the migration SQL in Supabase.')
-      document.getElementById('list').innerHTML = ''
+      showBanner('Could not connect to your database.<br><br>Error: <code>' + esc(e.message) + '</code>')
     }
   }
-
-  async function save() {
-    const input = document.getElementById('input')
-    const text = input.value.trim()
-    if (!text) return
-    const btn = document.getElementById('saveBtn')
-    const msg = document.getElementById('saveMsg')
-    btn.disabled = true
-    btn.textContent = 'Saving...'
-    msg.textContent = ''
-    msg.className = 'save-msg'
-    try {
-      const { error } = await db.from('thoughts').insert({ content: text })
-      if (error) throw error
-      input.value = ''
-      msg.textContent = '✓ Saved'
-      msg.className = 'save-msg ok'
-      await load()
-    } catch (e) {
-      msg.textContent = '✗ ' + e.message
-      msg.className = 'save-msg err'
-    } finally {
-      btn.disabled = false
-      btn.textContent = 'Save to Brain'
-    }
-  }
-
-  async function load() {
-    const list = document.getElementById('list')
-    try {
-      const { data, error } = await db
-        .from('thoughts').select('*')
-        .order('created_at', { ascending: false }).limit(20)
-      if (error) throw error
-      if (!data || data.length === 0) {
-        list.innerHTML = '<div class="empty">No thoughts yet. Write something above.</div>'
-        return
-      }
-      list.innerHTML = data.map(t => `
-        <div class="thought">
-          <div class="thought-text">${esc(t.content)}</div>
-          <div class="thought-time">${fmt(t.created_at)}</div>
-        </div>`).join('')
-    } catch (e) {
-      list.innerHTML = '<div class="empty" style="color:#ef4444">Could not load: ' + e.message + '</div>'
-    }
-  }
-
-  document.getElementById('input').addEventListener('keydown', e => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') save()
-  })
-
-  function esc(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-  }
-  function fmt(iso) {
-    return new Date(iso).toLocaleString('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    })
-  }
-
   init()
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}))
+  }
 </script>
 </body>
 </html>
