@@ -9,14 +9,21 @@
 //
 // Deployed with JWT verification OFF (Claude cannot send a Supabase login
 // token), so the function checks its own door: every request must carry
-// "Authorization: Bearer <MCP_ACCESS_KEY>".
+// "Authorization: Bearer <access key>".
 //
-// Secrets: MCP_ACCESS_KEY, OWNER_USER_ID. SUPABASE_URL and
+// Supabase stores only the SHA-256 fingerprint of that key, in
+// MCP_ACCESS_KEY_SHA256. The key itself lives only in Claude Desktop's config,
+// written there by scripts/setup-claude-mcp.sh. A leaked fingerprint cannot be
+// used to log in. (A plain MCP_ACCESS_KEY secret also works, for anyone
+// following the course text.)
+//
+// Secrets: MCP_ACCESS_KEY_SHA256, OWNER_USER_ID. SUPABASE_URL and
 // SUPABASE_SERVICE_ROLE_KEY are provided automatically.
 
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4'
 
 const ACCESS_KEY = Deno.env.get('MCP_ACCESS_KEY') ?? ''
+const ACCESS_KEY_SHA256 = (Deno.env.get('MCP_ACCESS_KEY_SHA256') ?? '').trim().toLowerCase()
 const OWNER_USER_ID = Deno.env.get('OWNER_USER_ID') ?? ''
 
 // The service role key skips row level security, so every query filters by
@@ -44,6 +51,17 @@ function sameKey(a: string, b: string) {
   let diff = 0
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
   return diff === 0
+}
+
+async function sha256(text: string) {
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+async function authorized(key: string) {
+  if (!key) return false
+  if (ACCESS_KEY_SHA256) return sameKey(await sha256(key), ACCESS_KEY_SHA256)
+  return sameKey(key, ACCESS_KEY)
 }
 
 // ---------- the tools the AI can call ----------
@@ -166,7 +184,7 @@ Deno.serve(async (req) => {
   // Door check before anything else.
   const auth = req.headers.get('authorization') ?? ''
   const key = auth.replace(/^Bearer\s+/i, '')
-  if (!ACCESS_KEY || !sameKey(key, ACCESS_KEY)) {
+  if (!(await authorized(key))) {
     return json({ jsonrpc: '2.0', id: null, error: { code: -32001, message: 'Unauthorized' } }, 401)
   }
   if (!OWNER_USER_ID) return json({ jsonrpc: '2.0', id: null, error: { code: -32002, message: 'OWNER_USER_ID is not set' } }, 500)

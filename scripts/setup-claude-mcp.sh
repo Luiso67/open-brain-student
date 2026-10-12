@@ -4,8 +4,9 @@
 # 1. Makes a new random access key (never shown on screen).
 # 2. Adds an "open-brain" server to Claude Desktop's config, keeping every
 #    other setting in that file. A backup is saved next to it first.
-# 3. Puts the key on your clipboard so you can paste it into Supabase as the
-#    MCP_ACCESS_KEY secret. Run it again any time to rotate the key.
+# 3. Prints the key's SHA-256 fingerprint. That goes into Supabase as the
+#    MCP_ACCESS_KEY_SHA256 secret. The fingerprint cannot be used to log in,
+#    so it is safe to see and copy. Run again any time to rotate the key.
 set -euo pipefail
 
 PROJECT_REF="vmdrvujkzlvpuzzttfxg"
@@ -40,8 +41,9 @@ os.chmod(tmp, 0o600)
 os.replace(tmp, path)
 PY
 
-printf '%s' "$KEY" | pbcopy
+FINGERPRINT=$(printf '%s' "$KEY" | shasum -a 256 | cut -c1-64)
 unset KEY
 
-echo "Claude Desktop is set up. Your new access key is on your clipboard."
-echo "Next: paste it into Supabase as the MCP_ACCESS_KEY secret, then quit and reopen Claude."
+echo "Claude Desktop is set up."
+echo "Fingerprint for the MCP_ACCESS_KEY_SHA256 secret in Supabase:"
+echo "$FINGERPRINT"
